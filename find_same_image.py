@@ -50,8 +50,11 @@ if __name__ == '__main__':
     q_map = {}
 
     for img_file in get_image_files():
-        fp, seq = img_hash(img_file)
-        pictures.append((img_file, seq))
+        try:
+            fp, seq = img_hash(img_file)
+            pictures.append((img_file, seq))
+        except:
+            pass
 
     for item in pictures:
         # print(item)
