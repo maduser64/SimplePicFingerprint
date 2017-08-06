@@ -6,12 +6,12 @@
 # Copyright 2015-2016 liantian
 #
 # This is free and unencumbered software released into the public domain.
-# 
+#
 # Anyone is free to copy, modify, publish, use, compile, sell, or
 # distribute this software, either in source code form or as a compiled
 # binary, for any purpose, commercial or non-commercial, and by any
 # means.
-# 
+#
 # In jurisdictions that recognize copyright laws, the author or authors
 # of this software dedicate any and all copyright interest in the
 # software to the public domain. We make this dedication for the benefit
@@ -19,7 +19,7 @@
 # successors. We intend this dedication to be an overt act of
 # relinquishment in perpetuity of all present and future rights to this
 # software under copyright law.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -27,9 +27,12 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-# 
+#
 # For more information, please refer to <http://unlicense.org>
+
+
 import os
+import hashlib
 import pathlib
 from perceptual_hash import img_hash, hamming
 import random
@@ -43,50 +46,30 @@ def get_image_files(work_dir=os.getcwd()):
         img_files.extend(os.path.join(root, fn) for fn in fns if any(fn.lower().endswith(ext) for ext in ext_name))
     return img_files
 
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def sha1(fname):
+    hash_sha1 = hashlib.sha1()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha1.update(chunk)
+    return hash_sha1.hexdigest()
 
 if __name__ == '__main__':
-    #
-    pictures = []
-    q_map = {}
 
     for img_file in get_image_files():
+        file = pathlib.Path(img_file)
+        file_filename, file_ext = os.path.splitext(file.name)
+        file_dir = file.parent
+        hash = sha1(img_file).upper()
         try:
-            fp, seq = img_hash(img_file)
-            pictures.append((img_file, seq))
+            file.rename(str(file_dir.joinpath("{0}{1}".format(hash,  file_ext))))
         except:
-            print("can not read")
-            print(img_file)
-
-
-    for item in pictures:
-        # print(item)
-        for other_item in pictures:
-            if other_item != item:
-                v = hamming(item[1], other_item[1])
-                q_map[(item[0], other_item[0])] = v
-        pictures.remove(item)
-
-    for item in q_map:
-        if q_map[item] < 2:
-            print("{0}  ,  {1}".format(q_map[item], item))
-            file0 = pathlib.Path(item[0])
-            file1 = pathlib.Path(item[1])
-            file0_filename, file0_ext = os.path.splitext(file0.name)
-            file0_dir = file0.parent
-            try:
-                file1.rename(str(file0_dir.joinpath("{0}_{1}{2}".format(file0_filename, ''.join(random.choices(string.ascii_uppercase + string.digits, k=6)), file0_ext))))
-            except:
-                pass
-
-    # path = 'C:\\Users\\liant\\Documents\\GitHub\\SimplePicFingerprint\\example_image\\aa949cda997024700476880b642129e2.jpeg'
-    # file0 = pathlib.Path(path)
-    # # # print(dir(p))
-    # # print(p.name)
-    # # # print(p.suffix)
-    #
-    # file0_filename, file0_ext = os.path.splitext(file0.name)
-    # file0_dir = file0.parent
-    # print(file0_filename)
-    # print(file0_ext)
-    # print(file0_dir)
-    # print()
+            print(file)
+            print(hash)

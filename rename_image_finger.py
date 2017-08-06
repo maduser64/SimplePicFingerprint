@@ -6,12 +6,12 @@
 # Copyright 2015-2016 liantian
 #
 # This is free and unencumbered software released into the public domain.
-# 
+#
 # Anyone is free to copy, modify, publish, use, compile, sell, or
 # distribute this software, either in source code form or as a compiled
 # binary, for any purpose, commercial or non-commercial, and by any
 # means.
-# 
+#
 # In jurisdictions that recognize copyright laws, the author or authors
 # of this software dedicate any and all copyright interest in the
 # software to the public domain. We make this dedication for the benefit
@@ -19,7 +19,7 @@
 # successors. We intend this dedication to be an overt act of
 # relinquishment in perpetuity of all present and future rights to this
 # software under copyright law.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -27,18 +27,16 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-# 
+#
 # For more information, please refer to <http://unlicense.org>
-#
-#
-# 方法参考
-# http://www.ruanyifeng.com/blog/2011/07/principle_of_similar_image_search.html
 
 import os
+import pathlib
+import hashlib
 from PIL import Image
 
 
-def img_hash(img_file, deviation=12):
+def img_hash(img_file, deviation=8):
     """
     :param img_file: 输入的图像路径，支持png,jpg,gif,bmp
     :param deviation: 误差值，默认是8
@@ -59,24 +57,11 @@ def img_hash(img_file, deviation=12):
     """
 
     image = Image.open(img_file)
-    print(image.format, image.size, image.mode)
-
-    # 每个方向，剪裁15%。长宽保留70%，尽量去掉水印。
-    width = image.size[0]
-    height = image.size[1]
-
-    image = image.crop((
-        int((width/2) - (width*0.35)),
-        int((height/2) - (height*0.35)),
-        int((width/2) + (width*0.35)),
-        int((height/2) + (height*0.35)),
-
-    ))
-    image.save("step0.jpg", "JPEG")
+    # print(image.format, image.size, image.mode)
     image = image.resize((deviation, deviation), Image.ANTIALIAS)
-    image.save("step1.jpg", "JPEG")
+    # image.save("step1.jpg", "JPEG")
     image = image.convert(mode="L", colors=64)
-    image.save("step2.jpg", "JPEG")
+    # image.save("step2.jpg", "JPEG")
     color_seq = list(image.getdata())
     # print(color_seq)
     color_avg = sum(color_seq) / len(color_seq)
@@ -86,13 +71,25 @@ def img_hash(img_file, deviation=12):
     result_fp = format(int("".join(str(x) for x in result_seq), base=2), "x")
     return result_fp, result_seq
 
+def get_image_files(work_dir=os.getcwd()):
+    ext_name = ['jpg', "jpeg", 'bmp', 'png', 'gif']
+    img_files = []
+    for root, dirnames, fns in os.walk(work_dir):
+        img_files.extend(os.path.join(root, fn) for fn in fns if any(fn.lower().endswith(ext) for ext in ext_name))
+    return img_files
 
-def hamming(s1, s2):
-    """得到指纹以后，就可以对比不同的图片，看看64位中有多少位是不一样的。在理论上，这等同于计算"汉明距离"（Hamming distance）。
-    如果不相同的数据位不超过5，就说明两张图片很相似；如果大于10，就说明这是两张不同的图片。"""
-    assert len(s1) == len(s2)
-    return sum(c1 != c2 for c1, c2 in zip(s1, s2))
 
 
 if __name__ == '__main__':
-    print(img_hash("test1.jpg"))
+        #
+    for img_file in get_image_files():
+        try:
+            fp, seq = img_hash(img_file)
+            file = pathlib.Path(img_file)
+            file_filename, file_ext = os.path.splitext(file.name)
+            file_dir = file.parent
+            file.rename(str(file_dir.joinpath("{0}{1}".format(hashlib.sha1(fp.encode()).hexdigest().upper(), file_ext))))
+        except:
+            print("can not read")
+            print(img_file)
+
